@@ -195,6 +195,10 @@ class _MathGameScreenState extends State<MathGameScreen> {
     });
   }
 
+  String _generateFruitDisplay(int count) {
+    return _currentFruit * count;
+  }
+
   void _generateQuestion() {
     _currentFruit = _fruits[Random().nextInt(_fruits.length)];
     int op = Random().nextInt(_level > 10 ? 3 : 2);
@@ -211,7 +215,8 @@ class _MathGameScreenState extends State<MathGameScreen> {
 
     if (op == 0) {
       _correctAnswer = num1 + num2;
-      _questionText = "$num1 $_currentFruit + $num2 $_currentFruit = ?";
+      _questionText =
+          "${_generateFruitDisplay(num1)}\n+\n${_generateFruitDisplay(num2)}\n= ?";
     } else if (op == 1) {
       if (num1 < num2) {
         int temp = num1;
@@ -219,12 +224,14 @@ class _MathGameScreenState extends State<MathGameScreen> {
         num2 = temp;
       }
       _correctAnswer = num1 - num2;
-      _questionText = "$num1 $_currentFruit - $num2 $_currentFruit = ?";
+      _questionText =
+          "${_generateFruitDisplay(num1)}\n-\n${_generateFruitDisplay(num2)}\n= ?";
     } else {
       num1 = Random().nextInt(10) + 2;
       num2 = Random().nextInt(5) + 2;
       _correctAnswer = num1 * num2;
-      _questionText = "$num1 $_currentFruit x $num2 $_currentFruit = ?";
+      _questionText =
+          "${_generateFruitDisplay(num1)}\nx\n${_generateFruitDisplay(num2)}\n= ?";
     }
 
     List<int> options = [_correctAnswer];
@@ -244,14 +251,13 @@ class _MathGameScreenState extends State<MathGameScreen> {
 
   void _checkAnswer(int selectedAnswer) {
     if (selectedAnswer == _correctAnswer) {
-
       // --- LOGIKA SUARA PINTAR ---
       if (_isBossLevel) {
         // Kalau Boss kalah, bunyikan suara Menang Besar!
-        AudioManager.instance.playSfx('win.mp3'); 
+        AudioManager.instance.playSfx('win.mp3');
       } else {
         // Kalau level biasa, cukup suara "Ting"
-        AudioManager.instance.playSfx('correct.mp3'); 
+        AudioManager.instance.playSfx('correct2.mp3');
       }
 
       setState(() => _showGemNotif = true);
@@ -491,7 +497,7 @@ class _MathGameScreenState extends State<MathGameScreen> {
                       child: Text(
                         _isBossLevel
                             ? "Cepat! Waktu terbatas!"
-                            : "Hitung jumlah $_currentFruit",
+                            : "Hitung total buah",
                         style: const TextStyle(
                           color: Colors.white70,
                           fontWeight: FontWeight.bold,

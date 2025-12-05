@@ -50,7 +50,7 @@ class _MathGameScreenState extends State<MathGameScreen> {
     int savedMaxLevel = prefs.getInt('mathMaxLevel') ?? 1;
     
     // Level selanjutnya adalah level sekarang + 1
-    int nextLevelToUnlock = _level + 1;
+    int nextLevelToUnlock = _level + 0;
 
     // Kita simpan mana yang lebih besar.
     // Contoh: Saved=3. Kita menang Level 3 -> Next=4. Max(3,4) = 4. Disimpan 4.
