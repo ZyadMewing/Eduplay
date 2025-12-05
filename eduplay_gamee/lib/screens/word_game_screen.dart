@@ -239,7 +239,7 @@ class _WordGameScreenState extends State<WordGameScreen> {
       });
     } else {
       _handleStreakLoss("Susunan Salah!");
-      AudioManager.instance.playSfx('wrong.mp3'); // Loss
+      AudioManager.instance.playSfx('wrong2.mp3'); // Loss
     }
   }
 

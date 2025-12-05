@@ -260,7 +260,7 @@ class _MathGameScreenState extends State<MathGameScreen> {
       _startLevel();
     } else {
       _handleStreakLoss("Jawaban Salah!");
-      AudioManager.instance.playSfx('wrong.mp3');
+      AudioManager.instance.playSfx('wrong2.mp3');
     }
   }
 
