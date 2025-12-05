@@ -22,6 +22,7 @@ class _MathGameScreenState extends State<MathGameScreen> {
   int _correctAnswer = 0;
   List<int> _answerOptions = [];
   bool _isBossLevel = false;
+
   final List<String> _fruits = [
     "🍎",
     "🍌",
@@ -49,40 +50,34 @@ class _MathGameScreenState extends State<MathGameScreen> {
     super.dispose();
   }
 
-  // --- FUNGSI MENANG ---
+  // --- LOGIKA MENANG ---
   Future<void> _handleWin() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // 1. Tambah Permata
     int currentGems = prefs.getInt('totalGems') ?? 0;
     await prefs.setInt('totalGems', currentGems + 5);
 
-    // 2. Unlock Level (Pakai max agar aman)
     int currentMax = prefs.getInt('mathMaxLevel') ?? 1;
     await prefs.setInt('mathMaxLevel', max(currentMax, _level + 0));
 
-    // 3. Misi Harian
     int currentDaily = prefs.getInt('dailyMathProgress') ?? 0;
     await prefs.setInt('dailyMathProgress', currentDaily + 1);
 
-    // 4. STREAK NAIK (+1)
     int streak = prefs.getInt('currentStreak') ?? 0;
     await prefs.setInt('currentStreak', streak + 1);
   }
 
-  // --- FUNGSI KALAH (Logika Penyelamatan) ---
+  // --- LOGIKA KALAH ---
   void _handleStreakLoss(String reason) async {
     _timer?.cancel();
     final prefs = await SharedPreferences.getInstance();
     int currentStreak = prefs.getInt('currentStreak') ?? 0;
     int currentGems = prefs.getInt('totalGems') ?? 0;
 
-    // Jika streak 0, game over biasa
     if (currentStreak == 0) {
       _showGameOverDialog(reason, 0, currentGems, false);
       return;
     }
-    // Jika ada streak, tawarkan opsi bayar
     _showGameOverDialog(reason, currentStreak, currentGems, true);
   }
 
@@ -107,7 +102,6 @@ class _MathGameScreenState extends State<MathGameScreen> {
             Text(reason, textAlign: TextAlign.center),
             const SizedBox(height: 20),
             if (canRestore) ...[
-              // Gambar telur pecah/sedih (Gunakan Icon jika gambar belum ada)
               const Icon(Icons.heart_broken, size: 50, color: Colors.redAccent),
               const SizedBox(height: 10),
               Text(
@@ -120,11 +114,10 @@ class _MathGameScreenState extends State<MathGameScreen> {
           ],
         ),
         actions: [
-          // TOMBOL RESET
           TextButton(
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
-              await prefs.setInt('currentStreak', 0); // Reset Streak
+              await prefs.setInt('currentStreak', 0);
               if (context.mounted) {
                 Navigator.pop(context);
                 Navigator.pop(context);
@@ -135,8 +128,6 @@ class _MathGameScreenState extends State<MathGameScreen> {
               style: TextStyle(color: Colors.grey),
             ),
           ),
-
-          // TOMBOL BAYAR 300
           if (canRestore)
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -146,11 +137,10 @@ class _MathGameScreenState extends State<MathGameScreen> {
               onPressed: gems >= 300
                   ? () async {
                       final prefs = await SharedPreferences.getInstance();
-                      await prefs.setInt('totalGems', gems - 300); // Bayar
-                      // Streak TIDAK di-reset
+                      await prefs.setInt('totalGems', gems - 300);
                       if (context.mounted) {
-                        Navigator.pop(context); // Tutup dialog
-                        Navigator.pop(context); // Keluar level
+                        Navigator.pop(context);
+                        Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text("Pet Selamat! -300 💎"),
@@ -159,7 +149,7 @@ class _MathGameScreenState extends State<MathGameScreen> {
                         );
                       }
                     }
-                  : null, // Disable kalau miskin
+                  : null,
               child: const Column(
                 children: [
                   Text("Selamatkan"),
@@ -196,6 +186,9 @@ class _MathGameScreenState extends State<MathGameScreen> {
   }
 
   String _generateFruitDisplay(int count) {
+    if (count > 15) {
+      return "$count $_currentFruit";
+    }
     return _currentFruit * count;
   }
 
@@ -227,8 +220,8 @@ class _MathGameScreenState extends State<MathGameScreen> {
       _questionText =
           "${_generateFruitDisplay(num1)}\n-\n${_generateFruitDisplay(num2)}\n= ?";
     } else {
-      num1 = Random().nextInt(10) + 2;
-      num2 = Random().nextInt(5) + 2;
+      num1 = Random().nextInt(8) + 2;
+      num2 = Random().nextInt(4) + 2;
       _correctAnswer = num1 * num2;
       _questionText =
           "${_generateFruitDisplay(num1)}\nx\n${_generateFruitDisplay(num2)}\n= ?";
@@ -238,9 +231,9 @@ class _MathGameScreenState extends State<MathGameScreen> {
     while (options.length < 4) {
       int dev = Random().nextInt(20) - 10;
       int wrong = _correctAnswer + dev;
-      if (wrong >= 0 && wrong != _correctAnswer && !options.contains(wrong))
+      if (wrong >= 0 && wrong != _correctAnswer && !options.contains(wrong)) {
         options.add(wrong);
-      else {
+      } else {
         int fb = Random().nextInt(50) + 1;
         if (!options.contains(fb) && fb != _correctAnswer) options.add(fb);
       }
@@ -251,12 +244,9 @@ class _MathGameScreenState extends State<MathGameScreen> {
 
   void _checkAnswer(int selectedAnswer) {
     if (selectedAnswer == _correctAnswer) {
-      // --- LOGIKA SUARA PINTAR ---
       if (_isBossLevel) {
-        // Kalau Boss kalah, bunyikan suara Menang Besar!
         AudioManager.instance.playSfx('win.mp3');
       } else {
-        // Kalau level biasa, cukup suara "Ting"
         AudioManager.instance.playSfx('correct2.mp3');
       }
 
@@ -265,17 +255,14 @@ class _MathGameScreenState extends State<MathGameScreen> {
         if (mounted) setState(() => _showGemNotif = false);
       });
 
-      _handleWin(); // Win
-
+      _handleWin();
       setState(() => _level++);
       _startLevel();
     } else {
       _handleStreakLoss("Jawaban Salah!");
-      AudioManager.instance.playSfx('wrong.mp3'); // Loss
+      AudioManager.instance.playSfx('wrong.mp3');
     }
   }
-
-  // DESAIN
 
   @override
   Widget build(BuildContext context) {
@@ -345,185 +332,193 @@ class _MathGameScreenState extends State<MathGameScreen> {
             children: [
               const SizedBox(height: 10),
 
-              // Timer
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: _isBossLevel ? Colors.red.shade900 : Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: _isBossLevel
-                      ? Border.all(color: Colors.redAccent, width: 3)
-                      : null,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 5,
+              // TIMER & NOTIF
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
                     ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.timer,
-                      color: _isBossLevel || _timeLeft < 10
-                          ? Colors.redAccent
-                          : Colors.orange,
+                    decoration: BoxDecoration(
+                      color: _isBossLevel ? Colors.red.shade900 : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: _isBossLevel
+                          ? Border.all(color: Colors.redAccent, width: 3)
+                          : null,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          blurRadius: 5,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 10),
-                    Text(
-                      "$_timeLeft s",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                        color: _isBossLevel ? Colors.white : Colors.black87,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.timer,
+                          color: _isBossLevel || _timeLeft < 10
+                              ? Colors.redAccent
+                              : Colors.orange,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          "$_timeLeft s",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                            color: _isBossLevel ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+
+              if (_showGemNotif)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 15,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "+5",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        SizedBox(width: 5),
+                        Icon(Icons.diamond, color: Colors.white, size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+
               const SizedBox(height: 10),
 
-              // Notif Permata
-              AnimatedOpacity(
-                opacity: _showGemNotif ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 500),
+              // --- AREA SOAL (PERBAIKAN UTAMA) ---
+              // Menggunakan Expanded agar papan soal mengisi ruang yang ada
+              Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 15,
-                    vertical: 8,
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
                   ),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.green,
+                    color: _isBossLevel
+                        ? const Color(0xFFA30000)
+                        : const Color(0xFF8D6E63),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: _isBossLevel
+                          ? const Color(0xFFFF4500)
+                          : const Color(0xFF5D4037),
+                      width: _isBossLevel ? 6 : 5,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 5,
+                        color: _isBossLevel
+                            ? Colors.redAccent.withValues(alpha: 0.6)
+                            : Colors.black.withValues(alpha: 0.3),
+                        offset: const Offset(0, 10),
+                        blurRadius: _isBossLevel ? 20 : 10,
                       ),
                     ],
                   ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "+5",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      SizedBox(width: 5),
-                      Icon(Icons.diamond, color: Colors.white, size: 18),
-                    ],
-                  ),
-                ),
-              ),
-
-              const Spacer(),
-
-              // Boss Visual
-              if (_isBossLevel)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
                   child: Column(
+                    mainAxisAlignment:
+                        MainAxisAlignment.center, // Tengahkan isi papan
                     children: [
-                      const Text(
-                        "KALAHKAN BOS SOAL!",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          shadows: [Shadow(color: Colors.black, blurRadius: 5)],
+                      if (_isBossLevel)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 10),
+                          child: Text(
+                            "KALAHKAN BOS!",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+
+                      // Area Teks Soal (Bisa discroll jika panjang)
+                      Expanded(
+                        child: Center(
+                          child: SingleChildScrollView(
+                            child: Text(
+                              _questionText,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                height: 1.2,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          _isBossLevel
+                              ? "Cepat! Waktu terbatas!"
+                              : "Hitung total buah",
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-
-              // Papan Soal
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 40,
-                  horizontal: 20,
-                ),
-                decoration: BoxDecoration(
-                  color: _isBossLevel
-                      ? const Color(0xFFA30000)
-                      : const Color(0xFF8D6E63),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: _isBossLevel
-                        ? const Color(0xFFFF4500)
-                        : const Color(0xFF5D4037),
-                    width: _isBossLevel ? 6 : 5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _isBossLevel
-                          ? Colors.redAccent.withValues(alpha: 0.6)
-                          : Colors.black.withValues(alpha: 0.3),
-                      offset: const Offset(0, 10),
-                      blurRadius: _isBossLevel ? 20 : 10,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      _questionText,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        _isBossLevel
-                            ? "Cepat! Waktu terbatas!"
-                            : "Hitung total buah",
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
               ),
 
-              const Spacer(),
-
-              // Jawaban Grid
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 20,
-                ),
+              // --- GRID JAWABAN (FIXED) ---
+              Container(
+                height: 180, // Tinggi pas untuk 2 baris tombol
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                margin: const EdgeInsets.only(bottom: 20),
                 child: GridView.builder(
-                  shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     crossAxisSpacing: 15,
                     mainAxisSpacing: 15,
-                    childAspectRatio: 1.8,
+                    childAspectRatio: 2.2, // Tombol agak pipih agar muat
                   ),
                   itemCount: _answerOptions.length,
                   itemBuilder: (context, index) {
