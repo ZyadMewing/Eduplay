@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:math'; // max
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/audio_manager.dart';
+import '../services/word_question_loader.dart';
 
 class WordGameScreen extends StatefulWidget {
   final int startLevel;
@@ -18,41 +19,8 @@ class _WordGameScreenState extends State<WordGameScreen> {
   Timer? _timer;
   bool _showGemNotif = false;
 
-  final List<List<String>> _allNormalSentences = [
-    ["SAYA", "SUKA", "MAKAN"],
-    ["IBU", "BELI", "SAYUR"],
-    ["AYAH", "BACA", "KORAN"],
-    ["ADIK", "MAIN", "BOLA"],
-    ["KUCING", "MINUM", "SUSU"],
-    ["BURUNG", "TERBANG", "TINGGI"],
-    ["BUNGA", "MAWAR", "MERAH"],
-    ["LANGIT", "WARNA", "BIRU"],
-    ["GURU", "MENGAJAR", "KAMI"],
-    ["KITA", "BELAJAR", "KODING"],
-    ["RODA", "SEPEDA", "DUA"],
-    ["SAPI", "MAKAN", "RUMPUT"],
-    ["HUJAN", "TURUN", "DERAS"],
-    ["MATAHARI", "TERBIT", "PAGI"],
-    ["IKAN", "BERENANG", "AIR"],
-    ["POHON", "TUMBUH", "BESAR"],
-    ["MEJA", "KAYU", "JATI"],
-    ["LAMPU", "NYALA", "TERANG"],
-    ["BUKU", "JENDELA", "DUNIA"],
-    ["RAJIN", "PANGKAL", "PANDAI"],
-    // ... (Tambahkan sisa soal kamu di sini) ...
-  ];
-  final List<List<String>> _allBossSentences = [
-    ["INDONESIA", "TANAH", "AIR", "BETA"],
-    ["PANCASILA", "DASAR", "NEGARA", "KITA"],
-    ["BHINNEKA", "TUNGGAL", "IKA", "BERBEDA"],
-    ["SATU", "NUSA", "SATU", "BANGSA"],
-    ["MERAH", "PUTIH", "BENDERA", "KITA"],
-    ["MAJU", "TAK", "GENTAR", "MEMBELA"],
-    ["BELAJAR", "WAKTU", "KECIL", "UKIR", "BATU"],
-    ["HEMAT", "PANGKAL", "KAYA", "RAYA"],
-    ["BERSIH", "PANGKAL", "SEHAT", "SELALU"],
-    ["BUKU", "ADALAH", "JENDELA", "DUNIA"],
-  ];
+  late List<List<String>> _allNormalSentences = [];
+  late List<List<String>> _allBossSentences = [];
 
   List<String> _targetSentence = [];
   List<String> _shuffledOptions = [];
@@ -63,7 +31,15 @@ class _WordGameScreenState extends State<WordGameScreen> {
   void initState() {
     super.initState();
     _level = widget.startLevel;
-    _startLevel();
+    _loadQuestionsAndStart();
+  }
+
+  Future<void> _loadQuestionsAndStart() async {
+    _allNormalSentences = await WordQuestionLoader.getNormalQuestions();
+    _allBossSentences = await WordQuestionLoader.getBossQuestions();
+    if (mounted) {
+      _startLevel();
+    }
   }
 
   @override
@@ -247,7 +223,7 @@ class _WordGameScreenState extends State<WordGameScreen> {
         AudioManager.instance.playSfx('win.mp3'); 
       } else {
         // Kalau level biasa, cukup suara "Ting"
-        AudioManager.instance.playSfx('correct.mp3'); 
+        AudioManager.instance.playSfx('correct2.mp3'); 
       }
 
       setState(() => _showGemNotif = true);

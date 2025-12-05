@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/word_question_loader.dart';
 import 'math_game_screen.dart';
 import 'word_game_screen.dart';
 
@@ -14,6 +15,7 @@ class LevelSelectionScreen extends StatefulWidget {
 
 class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
   int _unlockedLevel = 1;
+  int _maxLevels = 50; // Default, akan diupdate dari JSON
   bool _isLoading = true;
 
   @override
@@ -24,16 +26,31 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
 
   Future<void> _loadUnlockedLevel() async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     // KUNCI HARUS SAMA: 'mathMaxLevel' dan 'wordMaxLevel'
     String key = widget.gameType == 'MATH' ? 'mathMaxLevel' : 'wordMaxLevel';
-    
+
+    // Load jumlah soal dari JSON
+    int totalQuestions = 50; // Default
+    if (widget.gameType == 'WORD') {
+      try {
+        final normalQuestions = await WordQuestionLoader.getNormalQuestions();
+        final bossQuestions = await WordQuestionLoader.getBossQuestions();
+        totalQuestions = normalQuestions.length + bossQuestions.length;
+      } catch (e) {
+        debugPrint('Error loading word questions: $e');
+      }
+    }
+
     setState(() {
       _unlockedLevel = prefs.getInt(key) ?? 1;
+      _maxLevels = totalQuestions;
       _isLoading = false;
     });
-    
-    debugPrint("Level Terbuka ($key): $_unlockedLevel"); // Cek di debug console
+
+    debugPrint(
+      'Level Terbuka ($key): $_unlockedLevel / $_maxLevels',
+    ); // Cek di debug console
   }
 
   void _navigateToGame(int level) async {
@@ -41,12 +58,16 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
     if (widget.gameType == 'MATH') {
       await Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => MathGameScreen(startLevel: level)),
+        MaterialPageRoute(
+          builder: (context) => MathGameScreen(startLevel: level),
+        ),
       );
     } else {
       await Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => WordGameScreen(startLevel: level)),
+        MaterialPageRoute(
+          builder: (context) => WordGameScreen(startLevel: level),
+        ),
       );
     }
     // PAKSA REFRESH SAAT KEMBALI DARI GAME
@@ -58,7 +79,9 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.gameType == 'MATH' ? "Level Logika" : "Level Kata"),
-        backgroundColor: widget.gameType == 'MATH' ? Colors.orange : Colors.deepPurple,
+        backgroundColor: widget.gameType == 'MATH'
+            ? Colors.orange
+            : Colors.deepPurple,
         centerTitle: true,
       ),
       body: _isLoading
@@ -67,7 +90,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                   Padding(
+                  Padding(
                     padding: const EdgeInsets.only(bottom: 20.0),
                     child: Text(
                       "Level Terbuka: $_unlockedLevel", // Tampilkan angka biar jelas
@@ -76,13 +99,14 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                   ),
                   Expanded(
                     child: GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 5,
-                        crossAxisSpacing: 15,
-                        mainAxisSpacing: 15,
-                        childAspectRatio: 1.0,
-                      ),
-                      itemCount: 50,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 5,
+                            crossAxisSpacing: 15,
+                            mainAxisSpacing: 15,
+                            childAspectRatio: 1.0,
+                          ),
+                      itemCount: _maxLevels,
                       itemBuilder: (context, index) {
                         int level = index + 1;
                         bool isLocked = level > _unlockedLevel;
@@ -95,18 +119,39 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                             decoration: BoxDecoration(
                               color: isLocked
                                   ? Colors.grey.shade300
-                                  : (isBoss 
-                                      ? Colors.red 
-                                      : (widget.gameType == 'MATH' ? Colors.orange : Colors.deepPurple)),
+                                  : (isBoss
+                                        ? Colors.red
+                                        : (widget.gameType == 'MATH'
+                                              ? Colors.orange
+                                              : Colors.deepPurple)),
                               borderRadius: BorderRadius.circular(12),
-                              boxShadow: isLocked ? [] : [
-                                BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 4, offset: const Offset(0, 4))
-                              ],
+                              boxShadow: isLocked
+                                  ? []
+                                  : [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
                             ),
                             child: Center(
                               child: isLocked
-                                  ? Icon(Icons.lock, color: Colors.grey.shade500, size: 20)
-                                  : Text("$level", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                                  ? Icon(
+                                      Icons.lock,
+                                      color: Colors.grey.shade500,
+                                      size: 20,
+                                    )
+                                  : Text(
+                                      "$level",
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                             ),
                           ),
                         );
